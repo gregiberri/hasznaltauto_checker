@@ -1,7 +1,6 @@
 import os
-import platform
-import re
 import time
+import re
 import warnings
 import datetime
 import pandas as pd
@@ -13,13 +12,13 @@ warnings.filterwarnings('ignore')
 
 HASZNALTAUTO_PAGE = 'https://www.hasznaltauto.hu/'
 
-print(platform.system())
-if platform.system() == 'Linux':
-    browser_executable_path = 'firefox/linux/geckodriver'
-elif platform.system() == 'Mac':
-    browser_executable_path = 'firefox/mac/geckodriver'
-else:
-    raise SystemError('Unknown operating system.')
+# print(platform.system())
+# if platform.system() == 'Linux':
+#     browser_executable_path = 'firefox/linux/geckodriver'
+# elif platform.system() == 'Mac':
+#     browser_executable_path = 'firefox/mac/geckodriver'
+# else:
+#     raise SystemError('Unknown operating system.')
 
 
 while True:
