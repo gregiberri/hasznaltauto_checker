@@ -1,2 +1,4 @@
 selenium
 pandas
+webdriver_manager
+packaging

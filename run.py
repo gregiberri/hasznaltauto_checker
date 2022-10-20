@@ -4,58 +4,67 @@ import re
 import warnings
 import datetime
 import pandas as pd
-from selenium.webdriver import ActionChains, Keys
+from selenium.common import TimeoutException
+from selenium.webdriver import Keys
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from tqdm import tqdm
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
 
 warnings.filterwarnings('ignore')
 
 HASZNALTAUTO_PAGE = 'https://www.hasznaltauto.hu/'
+info_elements = ('cm³', 'kw', 'le')
 
-# print(platform.system())
-# if platform.system() == 'Linux':
-#     browser_executable_path = 'firefox/linux/geckodriver'
-# elif platform.system() == 'Mac':
-#     browser_executable_path = 'firefox/mac/geckodriver'
-# else:
-#     raise SystemError('Unknown operating system.')
-
+# Selenium script
+options = Options()
+# options.add_argument("--headless")
+# options.add_argument("--no-sandbox")
+# options.add_argument("--disable-dev-shm-usage")
+driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
 
 while True:
     cars_to_check = pd.read_csv('cars_to_check.csv')
-
-    options = Options()
-    options.headless = True
-    driver = webdriver.Firefox(options=options, executable_path=browser_executable_path, log_path=None)
 
     for _, (BRAND, MODELL) in cars_to_check.iterrows():
         print(f'\ndownload {BRAND} {MODELL}')
 
         driver.get(HASZNALTAUTO_PAGE)
-        time.sleep(2)
 
-        marka = driver.find_element_by_xpath('//*[@id="szemelyauto"]/div/form/div[1]/div/div[1]/div/div')
-        marka.click()
-        ActionChains(driver).send_keys(BRAND).perform()
-        ActionChains(driver).send_keys(Keys.RETURN).perform()
+        # click agree on pop-up
+        try:
+            WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[id=didomi-notice-agree-button]"))).click()
+        except TimeoutException:
+            print('No pop-up loaded')
 
-        modell = driver.find_element_by_xpath('//*[@id="szemelyauto"]/div/form/div[1]/div/div[2]/div/div')
-        modell.click()
-        ActionChains(driver).send_keys(MODELL).perform()
-        ActionChains(driver).send_keys(Keys.RETURN).perform()
+        # write brand name
+        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[id=mui-2]")))
+        inputElement = driver.find_element(By.ID, "mui-2")
+        inputElement.send_keys(BRAND)
+        inputElement.send_keys(Keys.RETURN)
 
-        # kereses = driver.find_element_by_xpath('//*[@id="szemelyauto"]/div/form/div[2]/div[2]/button[1]')
-        # kereses.click()
-        ActionChains(driver).send_keys(Keys.RETURN).perform()
-        time.sleep(2)
+        # write model name
+        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[id=mui-4]")))
+        inputElement = driver.find_element(By.ID, "mui-4")
+        inputElement.send_keys(MODELL)
+        inputElement.send_keys(Keys.RETURN)
+
+        # press search
+        WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.MuiButton-root.MuiButton-contained.MuiButton-containedPrimary.MuiButton-sizeMedium."
+                                                                                    "MuiButton-containedSizeMedium.MuiButton-disableElevation.MuiButtonBase-root."
+                                                                                    "lower-section__button___sW_WW.css-9jlt94"))).click()
 
         all_element_info = []
-        page = 1
         todays_date = datetime.datetime.today().strftime('%Y-%m-%d')
-        while True:
-            print(f'\tloading page: {page}')
+        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "pagination")))
+        page_number = int(driver.find_element(By.CLASS_NAME, "pagination").text.split()[-1])
+        for page in tqdm(range(page_number)):
             # get the elements on the page
-            elements = driver.find_elements_by_xpath('//*[contains(@class, "row talalati-sor")]')
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[id=talalati]")))
+            elements = driver.find_elements(By.CLASS_NAME, "row.talalati-sor")
 
             # strip the info
             element_info = []
@@ -63,6 +72,7 @@ while True:
                 text = element.text.split('\n')
                 ar, hirdetes = [''], ['']
                 info = [''] * 5
+                sorted_infos = ['', 0, 0, 0, 0, 0]
 
                 for text_element in text[1:]:
                     if ' Ft' in text_element:
@@ -71,11 +81,9 @@ while True:
                         except ValueError:
                             ar = 0
 
-                    elif 'kw' in text_element.lower() and 'le' in text_element.lower() \
-                            and len(text_element.split(', ')) > 3:
+                    elif sum([info_element in text_element.lower() for info_element in info_elements]) >= 2 and len(text_element.split(', ')) > 3:
                         infos = text_element.split(', ')
 
-                        sorted_infos = ['', 0, 0, 0, 0, 0]
                         sorted_infos[0] = infos[0]
                         for info in infos[1:]:
                             if info.lower().endswith(' cm³'):
@@ -94,17 +102,14 @@ while True:
                     elif 'Hirdetés' in text_element:
                         hirdetes = [int(text_element[-9:-1])]
 
-                element_info.append(hirdetes + ar + sorted_infos + [text[0]] + [todays_date]*2)
+                element_info.append(hirdetes + ar + sorted_infos + [text[0]] + [todays_date] * 2)
 
             all_element_info.extend(element_info)
 
             # next_page
             try:
-                next_page = driver.find_element_by_xpath('//*[@class="next"]')
-                next_page.click()
-                page += 1
-                time.sleep(2)
-            except:
+                WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CLASS_NAME, "next"))).click()
+            except TimeoutException:
                 break
 
         print(f'element number: {len(all_element_info)}')
@@ -134,8 +139,8 @@ while True:
     driver.close()
 
     current_date_and_time = datetime.datetime.now()
-    secs_added = datetime.timedelta(seconds=24*60*60)
+    secs_added = datetime.timedelta(seconds=24 * 60 * 60)
     future_date_and_time = current_date_and_time + secs_added
 
     print(f'\nSleep time until: {future_date_and_time}')
-    time.sleep(24*60*60)
+    time.sleep(24 * 60 * 60)
