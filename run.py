@@ -4,6 +4,7 @@ import re
 import warnings
 import datetime
 import pandas as pd
+import schedule
 from selenium.common import TimeoutException
 from selenium.webdriver import Keys
 from selenium import webdriver
@@ -24,9 +25,11 @@ options = Options()
 options.add_argument("--headless")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-dev-shm-usage")
-driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+driver_path = ChromeDriverManager().install()
 
-while True:
+
+def download_hasznaltauto_to_csv():
+    driver = webdriver.Chrome(driver_path, options=options)
     cars_to_check = pd.read_csv('cars_to_check.csv')
 
     for _, (BRAND, MODELL) in cars_to_check.iterrows():
@@ -118,7 +121,7 @@ while True:
                                                      'title', 'first_seen', 'last_seen'])
         df = df.set_index(['id'])
 
-        current_folder_name = os.path.join('hasznaltauto_tables', f'{BRAND}_{MODELL}')
+        current_folder_name = os.path.join('/hasznaltauto_tables', f'{BRAND}_{MODELL}')
         if not os.path.exists(current_folder_name):
             os.makedirs(current_folder_name)
         todays_csv_file_name = os.path.join(current_folder_name, f'{BRAND}_{MODELL}_{todays_date}.csv')
@@ -138,9 +141,9 @@ while True:
 
     driver.close()
 
-    current_date_and_time = datetime.datetime.now()
-    secs_added = datetime.timedelta(seconds=24 * 60 * 60)
-    future_date_and_time = current_date_and_time + secs_added
-
-    print(f'\nSleep time until: {future_date_and_time}')
-    time.sleep(24 * 60 * 60)
+download_hasznaltauto_to_csv()
+# schedule.every().day.at("01:00").do(download_hasznaltauto_to_csv)
+#
+# while True:
+#     schedule.run_pending()
+#     time.sleep(60)  # wait one minute
