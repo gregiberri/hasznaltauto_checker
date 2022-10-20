@@ -1,4 +1,4 @@
-selenium
-pandas
-webdriver_manager
-packaging
+selenium==4.4.3
+pandas==1.5.0
+webdriver_manager==3.8.4
+packaging==21.3
