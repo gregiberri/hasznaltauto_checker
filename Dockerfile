@@ -1,4 +1,4 @@
-FROM seleniarm/standalone-chromium:106.0
+FROM deinchristian/rpi-selenium-node-chrome:3.14.0
 ENV DEBIAN_FRONTEND=noninteractive
 USER root
 
@@ -11,6 +11,6 @@ COPY . /hasznaltauto_checker
 
 WORKDIR hasznaltauto_checker
 
-RUN pip install -r requirements.txt
+RUN pip3 install -r requirements.txt
 
 ENTRYPOINT ["python3", "run.py"]
