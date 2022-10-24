@@ -22,9 +22,13 @@ info_elements = ('cm³', 'kw', 'le')
 
 # Selenium script
 options = Options()
-options.add_argument("--headless")
-options.add_argument("--no-sandbox")
+options.add_argument("disable-infobars")
+options.add_argument('--headless')
+options.add_argument("--disable-extensions")
 options.add_argument("--disable-dev-shm-usage")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-setuid-sandbox")
+options.add_argument("--remote-debugging-port=9222")  # this
 driver_path = ChromeDriverManager().install()
 
 
@@ -140,6 +144,7 @@ def download_hasznaltauto_to_csv():
         df.to_csv(csv_file_name)
 
     driver.close()
+
 
 download_hasznaltauto_to_csv()
 # schedule.every().day.at("01:00").do(download_hasznaltauto_to_csv)
