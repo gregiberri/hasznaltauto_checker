@@ -5,13 +5,12 @@ import warnings
 import datetime
 import pandas as pd
 import schedule
-from selenium.common import TimeoutException
-from selenium.webdriver import Keys
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from tqdm import tqdm
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -29,11 +28,10 @@ options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-setuid-sandbox")
 options.add_argument("--remote-debugging-port=9222")  # this
-driver_path = ChromeDriverManager().install()
 
 
 def download_hasznaltauto_to_csv():
-    driver = webdriver.Chrome(driver_path, options=options)
+    driver = webdriver.Chrome('/usr/bin/chromedriver', options=options)
     cars_to_check = pd.read_csv('cars_to_check.csv')
 
     for _, (BRAND, MODELL) in cars_to_check.iterrows():

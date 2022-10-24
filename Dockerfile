@@ -1,16 +1,20 @@
-FROM seleniarm/standalone-chromium:106.0
-ENV DEBIAN_FRONTEND=noninteractive
-USER root
+FROM python:3.9-slim
 
-RUN apt update
-RUN apt install -y chromium
+# update and install chromium
+RUN apt-get -y update
+RUN apt-get install chromium-driver -y
 
-RUN apt install -y python3 python3-pip
+# set display port to avoid crash
+ENV DISPLAY=:99
 
+# upgrade pip
+RUN pip install --upgrade pip
+
+# copy codee
 COPY . /hasznaltauto_checker
-
 WORKDIR hasznaltauto_checker
 
-RUN pip install -r requirements.txt
+# install python env
+RUN pip3 install -r requirements.txt
 
-ENTRYPOINT ["python3", "run.py"]
+ENTRYPOINT ["python", "run.py"]
