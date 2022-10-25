@@ -144,9 +144,8 @@ def download_hasznaltauto_to_csv():
     driver.close()
 
 
-download_hasznaltauto_to_csv()
-# schedule.every().day.at("01:00").do(download_hasznaltauto_to_csv)
-#
-# while True:
-#     schedule.run_pending()
-#     time.sleep(60)  # wait one minute
+schedule.every().day.at("01:00").do(download_hasznaltauto_to_csv)
+
+while True:
+    schedule.run_pending()
+    time.sleep(60)  # wait one minute
