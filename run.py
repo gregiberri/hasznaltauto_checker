@@ -5,6 +5,7 @@ import warnings
 import datetime
 import pandas as pd
 import schedule
+import selenium
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.keys import Keys
@@ -58,14 +59,18 @@ def download_hasznaltauto_to_csv():
         inputElement.send_keys(Keys.RETURN)
 
         # press search
-        WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.MuiButton-root.MuiButton-contained.MuiButton-containedPrimary.MuiButton-sizeMedium."
-                                                                                    "MuiButton-containedSizeMedium.MuiButton-disableElevation.MuiButtonBase-root."
-                                                                                    "lower-section__button___sW_WW.css-9jlt94"))).click()
+        search_panel_element = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'szemelyauto')))
+        search_panel_element.find_element(By.CLASS_NAME, 'MuiButton-root').click()
 
         all_element_info = []
         todays_date = datetime.datetime.today().strftime('%Y-%m-%d')
-        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "pagination")))
-        page_number = int(driver.find_element(By.CLASS_NAME, "pagination").text.split()[-1])
+        WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, 'bodyContainer')))
+        try:
+            WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, "pagination")))
+            page_number = int(driver.find_element(By.CLASS_NAME, "pagination").text.split()[-1])
+        except selenium.common.exceptions.TimeoutException:
+            print('No pages found. Downloading only from this page.')
+            page_number = 1
         for page in tqdm(range(page_number)):
             # get the elements on the page
             WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[id=talalati]")))
@@ -79,35 +84,39 @@ def download_hasznaltauto_to_csv():
                 info = [''] * 5
                 sorted_infos = ['', 0, 0, 0, 0, 0]
 
-                for text_element in text[1:]:
-                    if ' Ft' in text_element:
-                        try:
-                            ar = [int(''.join(re.findall(r'\d+', text_element)))]
-                        except ValueError:
-                            ar = 0
+                try:
+                    for text_element in text[1:]:
+                        if ' Ft' in text_element:
+                            try:
+                                ar = [int(''.join(re.findall(r'\d+', text_element)))]
+                            except ValueError:
+                                ar = 0
 
-                    elif sum([info_element in text_element.lower() for info_element in info_elements]) >= 2 and len(text_element.split(', ')) > 3:
-                        infos = text_element.split(', ')
+                        elif sum([info_element in text_element.lower() for info_element in info_elements]) >= 2 and len(text_element.split(', ')) > 3:
+                            infos = text_element.split(', ')
 
-                        sorted_infos[0] = infos[0]
-                        for info in infos[1:]:
-                            if info.lower().endswith(' cm³'):
-                                sorted_infos[2] = int(info[:-3].replace(' ', ''))
-                            elif info.lower().endswith(' kw'):
-                                sorted_infos[3] = int(info[:-3])
-                            elif info.lower().endswith(' le'):
-                                sorted_infos[4] = int(info[:-3])
-                            elif info.lower().endswith(' km'):
-                                sorted_infos[5] = int(info[:-3].replace(' ', ''))
-                            else:
-                                try:
-                                    sorted_infos[1] = int(infos[1].split('/')[0])
-                                except ValueError as e:
-                                    print(e)
-                    elif 'Hirdetés' in text_element:
-                        hirdetes = [int(text_element[-9:-1])]
+                            sorted_infos[0] = infos[0]
+                            for info in infos[1:]:
+                                if info.lower().endswith(' cm³'):
+                                    sorted_infos[2] = int(info[:-3].replace(' ', ''))
+                                elif info.lower().endswith(' kw'):
+                                    sorted_infos[3] = int(info[:-3])
+                                elif info.lower().endswith(' le'):
+                                    sorted_infos[4] = int(info[:-3])
+                                elif info.lower().endswith(' km'):
+                                    sorted_infos[5] = int(info[:-3].replace(' ', ''))
+                                else:
+                                    try:
+                                        sorted_infos[1] = int(infos[1].split('/')[0])
+                                    except ValueError as e:
+                                        print(e)
+                        elif 'Hirdetés' in text_element:
+                            hirdetes = [int(text_element[-9:-1])]
 
-                element_info.append(hirdetes + ar + sorted_infos + [text[0]] + [todays_date] * 2)
+                    element_info.append(hirdetes + ar + sorted_infos + [text[0]] + [todays_date] * 2)
+
+                except Exception as e:
+                    print(f'\nSomething went wrong with an ad. \nError: {e}')
 
             all_element_info.extend(element_info)
 
