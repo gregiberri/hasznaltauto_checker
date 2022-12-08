@@ -28,11 +28,10 @@ options.add_argument("--disable-dev-shm-usage")
 options.add_argument("--no-sandbox")
 options.add_argument("--disable-setuid-sandbox")
 options.add_argument("--remote-debugging-port=9222")  # this
-driver_path = ChromeDriverManager().install()
 
 
 def download_hasznaltauto_to_csv():
-    driver = webdriver.Chrome('/usr/lib/chromium-browser/chromedriver', options=options)
+    driver = webdriver.Chrome('/usr/bin/chromedriver', options=options)
     cars_to_check = pd.read_csv('cars_to_check.csv')
 
     for _, (BRAND, MODELL) in cars_to_check.iterrows():
@@ -145,9 +144,8 @@ def download_hasznaltauto_to_csv():
     driver.close()
 
 
-download_hasznaltauto_to_csv()
-# schedule.every().day.at("01:00").do(download_hasznaltauto_to_csv)
-#
-# while True:
-#     schedule.run_pending()
-#     time.sleep(60)  # wait one minute
+schedule.every().day.at("01:00").do(download_hasznaltauto_to_csv)
+
+while True:
+    schedule.run_pending()
+    time.sleep(60)  # wait one minute
